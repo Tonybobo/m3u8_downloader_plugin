@@ -1,4 +1,11 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
   package="com.tonybobo.m3u8_downloader">
+    <!--    Play Video with other APP like VLC player -->
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.VIEW"/>
+        </intent>
+    </queries>
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
    
 </manifest>
