@@ -36,23 +36,20 @@ class DownloadTask {
   final int progress;
   final String url;
   final String filename;
-  final String savedDir;
   final int timeCreated;
-  final bool allowCellular;
 
-  DownloadTask(
-      {required this.taskId,
-      required this.status,
-      required this.progress,
-      required this.url,
-      required this.filename,
-      required this.savedDir,
-      required this.timeCreated,
-      required this.allowCellular});
+  DownloadTask({
+    required this.taskId,
+    required this.status,
+    required this.progress,
+    required this.url,
+    required this.filename,
+    required this.timeCreated,
+  });
 
   @override
   String toString() =>
-      'DownloadTask(taskId: $taskId , status: $status , progress: $progress , url: $url, filename: $filename , savedDir: $savedDir , timeCreated: $timeCreated , allowCellular :$allowCellular)';
+      'DownloadTask(taskId: $taskId , status: $status , progress: $progress , url: $url, filename: $filename , timeCreated: $timeCreated ,)';
 
   @override
   bool operator ==(Object other) {
@@ -66,14 +63,11 @@ class DownloadTask {
         other.progress == progress &&
         other.url == url &&
         other.filename == filename &&
-        other.savedDir == savedDir &&
-        other.timeCreated == timeCreated &&
-        other.allowCellular == allowCellular;
+        other.timeCreated == timeCreated;
   }
 
   @override
   int get hashCode {
-    return Object.hash(taskId, status, progress, url, filename, savedDir,
-        timeCreated, allowCellular);
+    return Object.hash(taskId, status, progress, url, filename, timeCreated);
   }
 }

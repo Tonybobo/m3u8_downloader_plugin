@@ -1,5 +1,3 @@
-import 'dart:convert';
-import 'dart:io';
 import 'dart:ui';
 
 import 'package:flutter/services.dart';
@@ -29,7 +27,7 @@ class M3u8Downloader {
 
     final callback = PluginUtilities.getCallbackHandle(callbackDispatcher);
 
-    await _channel.invokeMethod<void>('initalize', <dynamic>[
+    await _channel.invokeMethod<void>('initialize', <dynamic>[
       callback!.toRawHandle(),
       if (debug) 1 else 0,
       if (ignoreSSL) 1 else 0
@@ -38,31 +36,28 @@ class M3u8Downloader {
     _initialized = true;
   }
 
+  static Future<bool> config({
+    String? saveDir,
+    int? connTimeout,
+    int? readTimeout,
+  }) async {
+    final bool? result = await _channel.invokeMethod<bool>('config', {
+      "saveDir": saveDir,
+      "connTimeout": connTimeout,
+      "readTimeout": readTimeout
+    });
+    return result ?? false;
+  }
+
   static Future<String?> enqueue(
       {required String url,
-      required String savedDir,
       required String fileName,
-      Map<String, String> headers = const {},
-      bool showNotification = true,
-      bool requiresStorageNotLow = false,
-      bool savedInPublicStorage = false,
-      bool allowCellular = true,
       int timeout = 15000}) async {
     assert(_initialized, "M3U8 Downloader is not initialized.");
-    assert(Directory(savedDir).existsSync(), "savedDir does not exist");
 
     try {
-      final taskId = await _channel.invokeMethod<String>('enqueue', {
-        'url': url,
-        'saved_dir': savedDir,
-        'headers': jsonEncode(headers),
-        'show_notification': showNotification,
-        'open_file_from_notification': showNotification,
-        'requires_storage_not_low': requiresStorageNotLow,
-        'save_in_public_storage': savedInPublicStorage,
-        'timeout': timeout,
-        'allow_cellular': allowCellular
-      });
+      final taskId = await _channel
+          .invokeMethod<String>('enqueue', {'url': url, 'filename': fileName});
 
       if (taskId == null) {
         throw const M3U8DownloaderException(
@@ -91,14 +86,13 @@ class M3u8Downloader {
       return result.map(
         (dynamic item) {
           return DownloadTask(
-              taskId: item['task_id'] as String,
-              status: DownloadTaskStatus.fromInt(item['status'] as int),
-              progress: item['progress'] as int,
-              url: item['url'] as String,
-              filename: item['file_name'] as String,
-              savedDir: item['saved_dir'] as String,
-              timeCreated: item['time_created'] as int,
-              allowCellular: (item['allow_cellular'] as bool?) ?? true);
+            taskId: item['task_id'] as String,
+            status: DownloadTaskStatus.fromInt(item['status'] as int),
+            progress: item['progress'] as int,
+            url: item['url'] as String,
+            filename: item['file_name'] as String,
+            timeCreated: item['time_created'] as int,
+          );
         },
       ).toList();
     } on M3U8DownloaderException catch (e) {
@@ -128,14 +122,13 @@ class M3u8Downloader {
       return result.map(
         (dynamic item) {
           return DownloadTask(
-              taskId: item['task_id'] as String,
-              status: DownloadTaskStatus.fromInt(item['status'] as int),
-              progress: item['progress'] as int,
-              url: item['url'] as String,
-              filename: item['file_name'] as String,
-              savedDir: item['saved_dir'] as String,
-              timeCreated: item['time_created'] as int,
-              allowCellular: (item['allow_cellular'] as bool?) ?? true);
+            taskId: item['task_id'] as String,
+            status: DownloadTaskStatus.fromInt(item['status'] as int),
+            progress: item['progress'] as int,
+            url: item['url'] as String,
+            filename: item['file_name'] as String,
+            timeCreated: item['time_created'] as int,
+          );
         },
       ).toList();
     } on M3U8DownloaderException catch (e) {
