@@ -1,5 +1,6 @@
 package com.tonybobo.m3u8_downloader.utils
 
+import android.media.MediaScannerConnection
 import com.tonybobo.m3u8_downloader.bean.M3U8
 import com.tonybobo.m3u8_downloader.bean.M3U8Ts
 import com.tonybobo.m3u8_downloader.downloader.M3U8DownloadConfig
@@ -16,6 +17,7 @@ object M3U8Util {
     private const val KB:Float = 1024F
     private const val MB:Float = 1024* KB
     private const val GB:Float = 1024*MB
+    private const val LOCAL_FILE = "local1.m3u8"
 
     fun parseIndex(url:String):M3U8{
      val baseUrl = URL(url)
@@ -78,7 +80,7 @@ object M3U8Util {
                 return dir.delete()
             }else if(dir.isDirectory){
                 val files = dir.listFiles()
-                if(files != null && files.size > 0){
+                if(files != null && files.isNotEmpty()){
                     for (file in files){
                         clearDir(file)
                     }
@@ -105,26 +107,26 @@ object M3U8Util {
         }
     }
 
-    fun createLocalM3u8(fileName: String , m3u8: M3U8){
-        createLocalM3u8(fileName , m3u8 , null)
-    }
-
-    fun createLocalM3u8(fileName:String , m3u8:M3U8 , keyPath:String?){
-        M3U8Log.d("CreateLocalM3u8: $fileName")
-        val bfw = BufferedWriter(FileWriter(fileName , false))
-        bfw.write("#EXTM3U\n")
-        bfw.write("#EXT-X-VERSION:3\n")
-        bfw.write("#EXT-X-MEDIA-SEQUENCE:0\n")
-        bfw.write("#EXT-X-TARGETDURATION:13\n")
-        if(keyPath != null) bfw.write("EXT-X-KEY:METHOD=AES-128,URI=\"$keyPath\"\n")
-        for(m3u8Ts in m3u8.tsList){
-            bfw.write("#EXTINF:" +m3u8Ts.seconds + ",\n")
-            bfw.write(m3u8Ts.obtainEncodeTsFileName())
-            bfw.newLine()
+    fun createLocalM3u8(fileName:String, m3u8:M3U8, keyPath:String?){
+        val dir = File(fileName)
+        if(!dir.exists()){
+            dir.mkdirs()
         }
-        bfw.write("#EXT-X-ENDLIST")
-        bfw.flush()
-        bfw.close()
+        val file = File(dir.absolutePath + File.separator + LOCAL_FILE)
+        if (file.exists()){
+            file.delete()
+        }
+        M3U8Log.d("CreateLocalM3u8: ${file.absolutePath}")
+        file.writeText("#EXTM3U\n")
+        file.appendText("#EXT-X-VERSION:3\n")
+        file.appendText("#EXT-X-MEDIA-SEQUENCE:0\n")
+        file.appendText("#EXT-X-TARGETDURATION:13\n")
+        if(keyPath != null) file.appendText("EXT-X-KEY:METHOD=AES-128,URI=\"$keyPath\"\n")
+        for(m3u8Ts in m3u8.tsList){
+            file.appendText("#EXTINF:${m3u8Ts.seconds},\n")
+            file.appendText("${m3u8Ts.obtainEncodeTsFileName()}\n")
+        }
+        file.appendText("#EXT-X-ENDLIST")
     }
 
     fun readFile(fileName: String):ByteArray{
@@ -153,8 +155,8 @@ object M3U8Util {
         out.close()
     }
 
-    fun getSaveFileDir(url:String):String{
-        return M3U8DownloadConfig.getSaveDir()+File.separator + EncryptUtil.md5Encode(url)
+    fun getSaveFileDir(fileName: String):String{
+        return M3U8DownloadConfig.getSaveDir()+File.separator + fileName
     }
 
 }

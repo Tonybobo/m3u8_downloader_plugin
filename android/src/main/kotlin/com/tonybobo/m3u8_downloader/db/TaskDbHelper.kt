@@ -19,7 +19,8 @@ class TaskDbHelper private constructor(context: Context) :
                   TaskEntry.COLUMN_NAME_PROGRESS + " INTEGER DEFAULT 0," +
                   TaskEntry.COLUMN_NAME_URL + " TEXT," +
                   TaskEntry.COLUMN_NAME_FILE_NAME + " TEXT," +
-                  TaskEntry.COLUMN_NAME_TIME_CREATED + " INTEGER DEFAULT 0" +
+                  TaskEntry.COLUMN_NAME_TIME_CREATED + " INTEGER DEFAULT 0," +
+                  TaskEntry.COLUMN_NAME_LAST_TS + " TEXT " +
                   ")"
                 )
         private const val SQL_DELETE_ENTRIES = "DROP TABLE IF EXISTS ${TaskEntry.TABLE_NAME}"

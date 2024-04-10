@@ -21,6 +21,7 @@ import io.flutter.plugin.common.BinaryMessenger
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
 import io.flutter.plugin.common.MethodChannel.Result
+import java.util.UUID
 import java.util.concurrent.TimeUnit
 
 import kotlin.random.Random
@@ -114,7 +115,7 @@ class M3u8DownloaderPlugin: MethodChannel.MethodCallHandler , FlutterPlugin {
             "enqueue" -> enqueue(call, result)
 //            "cancel" -> cancel(call , result)
 //            "cancelAll" -> cancelAll(result)
-//            "pause" -> pause(call , result)
+            "pause" -> pause(call , result)
 //            "resume" -> resume(call, result)
 //            "retry" -> retry(call ,result)
 //            "open" -> open(call , result)
@@ -200,7 +201,6 @@ class M3u8DownloaderPlugin: MethodChannel.MethodCallHandler , FlutterPlugin {
         WorkManager.getInstance(requireContext()).enqueue(request)
         val taskId:String = request.id.toString()
         result.success(taskId)
-//        taskDao!!.clearDatabase("task")
         sendUpdateProgress(taskId , DownloadStatus.ENQUEUED , 0  )
 //        taskDao!!.insertOrUpdateNewTask(
 //            taskId,
@@ -222,12 +222,12 @@ class M3u8DownloaderPlugin: MethodChannel.MethodCallHandler , FlutterPlugin {
 //        result.success(null)
 //    }
 
-//    private fun pause(call: MethodCall , result: Result){
-//        val taskId:String = call.requireArgument("task_id")
-//        taskDao!!.updateTask(taskId  )
-//        WorkManager.getInstance(requireContext()).cancelWorkById(UUID.fromString(taskId))
-//        result.success(null)
-//    }
+    private fun pause(call: MethodCall , result: Result){
+        val taskId:String = call.requireArgument("task_id")
+        taskDao!!.updateTask(taskId , DownloadStatus.PAUSED )
+        WorkManager.getInstance(requireContext()).cancelWorkById(UUID.fromString(taskId))
+        result.success(null)
+    }
 
 //    private fun resume(call: MethodCall , result: Result){
 //       val taskId:String = call.requireArgument("task_id")

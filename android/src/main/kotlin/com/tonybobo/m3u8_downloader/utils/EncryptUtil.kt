@@ -5,6 +5,7 @@ import android.text.TextUtils
 import java.math.BigInteger
 import java.security.MessageDigest
 import java.security.NoSuchAlgorithmException
+import java.util.Base64
 import javax.crypto.Cipher
 import javax.crypto.KeyGenerator
 import javax.crypto.spec.IvParameterSpec
@@ -14,11 +15,15 @@ import javax.crypto.spec.SecretKeySpec
 object EncryptUtil {
     private const val ENCODING:String = "UTF-8"
 
+    private fun String.md5():String{
+        val md = MessageDigest.getInstance("MD5")
+        md.update(this.toByteArray())
+        return BigInteger(1 , md.digest()).toString(16)
+    }
+
     fun md5Encode(str: String): String {
         try {
-           val md = MessageDigest.getInstance("MD5")
-            md.update(str.toByteArray())
-            return BigInteger(1,md.digest()).toString(16)
+            return str.md5()
         }catch (e: NoSuchAlgorithmException){
             e.printStackTrace()
         }

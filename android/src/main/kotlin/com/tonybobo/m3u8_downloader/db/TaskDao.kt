@@ -17,6 +17,7 @@ class TaskDao(private val dbHelper: TaskDbHelper){
         TaskEntry.COLUMN_NAME_STATUS,
         TaskEntry.COLUMN_NAME_URL,
         TaskEntry.COLUMN_NAME_FILE_NAME,
+        TaskEntry.COLUMN_NAME_LAST_TS,
         TaskEntry.COLUMN_NAME_TIME_CREATED,
     )
 
@@ -104,11 +105,12 @@ class TaskDao(private val dbHelper: TaskDbHelper){
         return result
     }
 
-    fun updateTask(taskId: String , status: DownloadStatus , progress: Int){
+    fun updateTask(taskId: String , status: DownloadStatus , progress: Int , lastTs: String?){
         val db = dbHelper.writableDatabase
         val values = ContentValues()
         values.put(TaskEntry.COLUMN_NAME_STATUS , status.ordinal)
         values.put(TaskEntry.COLUMN_NAME_PROGRESS, progress)
+        values.put(TaskEntry.COLUMN_NAME_LAST_TS , lastTs)
         db.beginTransaction()
         try {
            db.update(
@@ -125,13 +127,12 @@ class TaskDao(private val dbHelper: TaskDbHelper){
         }
     }
 
-    fun updateTask(currentTaskId: String, newTaskId:String , status: DownloadStatus , progress: Int ){
+    fun updateTask(currentTaskId: String, newTaskId:String , status: DownloadStatus ){
         val db = dbHelper.writableDatabase
         val values = ContentValues()
         values.put(TaskEntry.COLUMN_NAME_TASK_ID , newTaskId)
         values.put(TaskEntry.COLUMN_NAME_STATUS , status.ordinal)
         values.put(TaskEntry.COLUMN_NAME_TIME_CREATED , System.currentTimeMillis())
-        values.put(TaskEntry.COLUMN_NAME_PROGRESS, progress)
         db.beginTransaction()
         try {
             db.update(
@@ -149,24 +150,25 @@ class TaskDao(private val dbHelper: TaskDbHelper){
     }
 
 
-//    fun updateTask(taskId: String){
-//        val db = dbHelper.writableDatabase
-//        val values = ContentValues()
-//        db.beginTransaction()
-//        try {
-//            db.update(
-//                TaskEntry.TABLE_NAME,
-//                values,
-//                TaskEntry.COLUMN_NAME_TASK_ID + " = ? ",
-//                arrayOf(taskId)
-//            )
-//            db.setTransactionSuccessful()
-//        }catch (e: Exception){
-//            e.printStackTrace()
-//        }finally {
-//            db.endTransaction()
-//        }
-//    }
+    fun updateTask(taskId: String , status: DownloadStatus){
+        val db = dbHelper.writableDatabase
+        val values = ContentValues()
+        values.put(TaskEntry.COLUMN_NAME_STATUS , status.ordinal)
+        db.beginTransaction()
+        try {
+            db.update(
+                TaskEntry.TABLE_NAME,
+                values,
+                TaskEntry.COLUMN_NAME_TASK_ID + " = ? ",
+                arrayOf(taskId)
+            )
+            db.setTransactionSuccessful()
+        }catch (e: Exception){
+            e.printStackTrace()
+        }finally {
+            db.endTransaction()
+        }
+    }
 
     fun deleteTask(taskId: String){
         val db = dbHelper.writableDatabase
@@ -194,6 +196,7 @@ class TaskDao(private val dbHelper: TaskDbHelper){
         val progress = cursor.getInt(cursor.getColumnIndexOrThrow(TaskEntry.COLUMN_NAME_PROGRESS))
         val filename = cursor.getString(cursor.getColumnIndexOrThrow(TaskEntry.COLUMN_NAME_FILE_NAME))
         val timeCreated = cursor.getLong(cursor.getColumnIndexOrThrow(TaskEntry.COLUMN_NAME_TIME_CREATED))
+        val lastTs = cursor.getString(cursor.getColumnIndexOrThrow(TaskEntry.COLUMN_NAME_LAST_TS))
 
         return DownloadTask(
             primaryId,
@@ -202,6 +205,7 @@ class TaskDao(private val dbHelper: TaskDbHelper){
             url,
             progress,
             filename,
+            lastTs,
             timeCreated,
         )
     }

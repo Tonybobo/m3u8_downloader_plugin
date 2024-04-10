@@ -10,5 +10,6 @@ object TaskEntry : BaseColumns {
     const val COLUMN_NAME_URL = "url"
     const val COLUMN_NAME_FILE_NAME= "file_name"
     const val COLUMN_NAME_TIME_CREATED= "time_created"
+    const val COLUMN_NAME_LAST_TS = "last_ts"
 }
 

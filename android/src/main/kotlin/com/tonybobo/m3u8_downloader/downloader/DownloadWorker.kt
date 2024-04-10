@@ -15,7 +15,6 @@ import com.tonybobo.m3u8_downloader.utils.M3U8Log
 class DownloadWorker(context: Context , params: WorkerParameters ) : Worker(context , params)  {
     private var dbHelper: TaskDbHelper?= null
     private var taskDao: TaskDao?=null
-    private var lastProgress = 0
     private var m3u8Task : M3U8Task? = null
     private val backgroundExecutor:FlutterBackgroundExecutor = FlutterBackgroundExecutor()
     private val m3u8DownloadTask  = M3U8DownloadTask(context)
@@ -36,12 +35,15 @@ class DownloadWorker(context: Context , params: WorkerParameters ) : Worker(cont
             if (totalTs > 0) downloadProgress = 1.0f * curTs/totalTs
         }
 
-        override fun onDownloadItem(itemFileSize: Long, totalTs: Int, curTs: Int) {
-            // Plan to execute flutter background executor. But it may send a lot of message as TS files are normally small;
-            // Currently it will be used as a monitor and to update progress
+        override fun onDownloadItem(itemFileSize: Long, totalTs: Int, curTs: Int , lastTsFile: String) {
+            // save last downloaded ts filename for resuming
             if(!m3u8DownloadTask.isRunning) return
             if(totalTs > 0) downloadProgress = 1.0f * curTs/totalTs
-            M3U8Log.d("onDownloadItem: $itemFileSize / ${m3u8Task!!.getTotalSize()} | $curTs / $totalTs  ,  downloadProgress:  $downloadProgress ")
+            dbHelper = TaskDbHelper.getInstance(context)
+            taskDao = TaskDao(dbHelper!!)
+            taskDao!!.updateTask(id.toString() , DownloadStatus.COMPLETED , downloadProgress.toInt() , lastTsFile)
+
+            M3U8Log.d("onDownloadItem: $itemFileSize / ${m3u8Task!!.getTotalSize()} | $curTs / $totalTs  ,  downloadProgress:  $downloadProgress , lastTsFile : $lastTsFile ")
         }
 
         override fun onProgress(curLength: Long) {
@@ -63,7 +65,7 @@ class DownloadWorker(context: Context , params: WorkerParameters ) : Worker(cont
             val fileName = inputData.getString(ARG_FILE_NAME)
             dbHelper = TaskDbHelper.getInstance(context)
             taskDao = TaskDao(dbHelper!!)
-            taskDao!!.updateTask(id.toString() , DownloadStatus.COMPLETED , downloadProgress.toInt())
+            taskDao!!.updateTask(id.toString() , DownloadStatus.COMPLETED , downloadProgress.toInt() , null)
             M3U8Log.d("Success : TaskId: $id , FileName : $fileName ")
         }
 
@@ -71,8 +73,14 @@ class DownloadWorker(context: Context , params: WorkerParameters ) : Worker(cont
             error.printStackTrace()
             dbHelper = TaskDbHelper.getInstance(context)
             taskDao = TaskDao(dbHelper!!)
-            taskDao!!.updateTask(id.toString(), DownloadStatus.FAILED , downloadProgress.toInt())
+            taskDao!!.updateTask(id.toString(), DownloadStatus.FAILED , downloadProgress.toInt() , null)
             M3U8Log.e("onError: ${error.message}")
+        }
+
+        override fun onStop() {
+            dbHelper = TaskDbHelper.getInstance(context)
+            taskDao = TaskDao(dbHelper!!)
+            taskDao!!.updateTask(id.toString() , DownloadStatus.PAUSED , downloadProgress.toInt() , null)
         }
 
     }
@@ -98,7 +106,9 @@ class DownloadWorker(context: Context , params: WorkerParameters ) : Worker(cont
         if (url != null) {
             m3u8Task = M3U8Task(url)
             M3U8Log.d("DO WORK ::: fileName = $fileName , url = $url  , taskId = $id")
-            m3u8DownloadTask.download(url , taskListener)
+            if (fileName != null) {
+                m3u8DownloadTask.download(url , taskListener , fileName)
+            }
         }
         return Result.success()
     }
@@ -107,13 +117,7 @@ class DownloadWorker(context: Context , params: WorkerParameters ) : Worker(cont
 
 
     override fun onStopped() {
-       val context : Context = applicationContext
-       dbHelper = TaskDbHelper.getInstance(context)
-        taskDao = TaskDao(dbHelper!!)
-        val task = taskDao?.loadTask(id.toString())
-        if(task != null && task.status == DownloadStatus.ENQUEUED){
-            taskDao?.updateTask(id.toString() , DownloadStatus.CANCELED , lastProgress)
-        }
+        m3u8DownloadTask.stop()
     }
 
 }
