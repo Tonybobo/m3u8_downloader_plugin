@@ -115,9 +115,9 @@ class _MyHomePageState extends State<MyHomePage> {
         await M3u8Downloader.enqueue(url: task.link!, fileName: task.name!);
   }
 
-  // Future<void> _pauseDownload(TaskInfo task) async {
-  //   await M3u8Downloader.pause(taskId: task.taskId!);
-  // }
+  Future<void> _pauseDownload(TaskInfo task) async {
+    await M3u8Downloader.pause(taskId: task.taskId!);
+  }
 
   // Future<void> _resumeDownload(TaskInfo task) async {
   //   final newTaskId = await M3u8Downloader.resume(taskId: task.taskId!);
@@ -191,14 +191,14 @@ class _MyHomePageState extends State<MyHomePage> {
 
     _items.add(ItemHolder(name: 'Pending Videos'));
 
-    List<TaskInfo?> _pendingTasks = [];
+    List<TaskInfo?> pendingTasks0 = [];
 
-    _pendingTasks.addAll(
+    pendingTasks0.addAll(
         pendingTasks!.map((e) => TaskInfo(name: e.filename, link: e.url)));
 
     for (var i = 0; i < pendingTasks.length; i++) {
       _items.add(
-          ItemHolder(name: _pendingTasks[i]?.name, task: _pendingTasks[i]));
+          ItemHolder(name: pendingTasks0[i]?.name, task: pendingTasks0[i]));
     }
 
     for (final task in tasks) {
@@ -289,7 +289,7 @@ class _MyHomePageState extends State<MyHomePage> {
                     _requestDownload(task);
 
                   case DownloadTaskStatus.running:
-                  // _pauseDownload(task);
+                    _pauseDownload(task);
 
                   case DownloadTaskStatus.paused:
                   // _resumeDownload(task);

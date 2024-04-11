@@ -35,6 +35,21 @@ class DownloadListItem extends StatelessWidget {
             )
           ],
         );
+      case DownloadTaskStatus.paused:
+        return Row(
+          children: [
+            Text('${task.progress}'),
+            IconButton(
+              onPressed: () => onActionTap?.call(task),
+              constraints: const BoxConstraints(minHeight: 32, minWidth: 32),
+              icon: const Icon(
+                Icons.play_arrow,
+                color: Colors.yellow,
+              ),
+              tooltip: 'Resume',
+            )
+          ],
+        );
       case DownloadTaskStatus.complete:
         return Row(
           mainAxisSize: MainAxisSize.min,
