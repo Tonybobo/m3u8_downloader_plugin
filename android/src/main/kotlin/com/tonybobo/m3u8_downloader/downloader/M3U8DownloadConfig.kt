@@ -10,6 +10,7 @@ object M3U8DownloadConfig {
         private const val TAG_DEBUG = "TAG_DEBUG_M3U8"
         private const val TAG_CONN_TIMEOUT = "TAG_CONN_TIMEOUT_M3U8"
         private const val TAG_READ_TIMEOUT = "TAG_READ_TIMEOUT_M3U8"
+        private const val CALLBACK_DISPATCHER_HANDLE_KEY="callback_dispatcher_handle_key"
 
 
         fun build(context: Context){
@@ -47,6 +48,14 @@ object M3U8DownloadConfig {
         fun getDebugMode():Boolean{
             return SpHelper.getBoolean(TAG_DEBUG , false)
         }
+
+       fun setCallbackHandle(handle: Long){
+           SpHelper.putLong(CALLBACK_DISPATCHER_HANDLE_KEY , handle)
+       }
+
+       fun getCallbackHandle():Long {
+           return SpHelper.getLong(CALLBACK_DISPATCHER_HANDLE_KEY  , 0)
+       }
 }
 
 

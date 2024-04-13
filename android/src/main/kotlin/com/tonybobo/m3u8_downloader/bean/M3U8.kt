@@ -5,7 +5,7 @@ data class M3U8(
     var dirPath:String ="",
     var localPath:String = "",
     var key:String ="", var iv:String = "",
-    val tsList: MutableList<M3U8Ts> = ArrayList()
+    var tsList: MutableList<M3U8Ts> = ArrayList()
 ){
 
     fun getTotalFileSize():Long{
@@ -14,14 +14,6 @@ data class M3U8(
             fileSize += m3u8Ts.fileSize
         }
         return fileSize
-    }
-
-    fun getTotalTime():Long{
-        var totalTime:Long = 0
-        for(m3u8Ts in tsList){
-            totalTime += m3u8Ts.seconds.toInt()
-        }
-        return totalTime
     }
 
 }

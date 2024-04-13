@@ -33,6 +33,7 @@ class DownloadWorker(context: Context , params: WorkerParameters ) : Worker(cont
             val totalTs  = m3u8.tsList.size
             M3U8Log.d("onStartDownload: $curTs/$totalTs")
             if (totalTs > 0) downloadProgress = 1.0f * curTs/totalTs
+            backgroundExecutor.sendUpdateProcessEvent(id , DownloadStatus.RUNNING , downloadProgress , inputData , context)
         }
 
         override fun onDownloadItem(itemFileSize: Long, totalTs: Int, curTs: Int , lastTsFile: String) {
@@ -91,6 +92,7 @@ class DownloadWorker(context: Context , params: WorkerParameters ) : Worker(cont
         const val ARG_CALLBACK_HANDLE = "callback_handle"
         const val ARG_DEBUG = "debug"
         const val ARG_STEP = "step"
+        const val ARG_LAST_TS = "lastTs"
 
     }
 
@@ -103,7 +105,16 @@ class DownloadWorker(context: Context , params: WorkerParameters ) : Worker(cont
     override fun doWork(): Result {
         val fileName = inputData.getString(ARG_FILE_NAME)
         val url = inputData.getString(ARG_URL)
-        if (url != null) {
+        val lastTs = inputData.getString(ARG_LAST_TS)
+
+        if(lastTs != null){
+            m3u8Task = M3U8Task(url!!)
+            M3U8Log.d("RESUME WORK ::: fileName = $fileName , url = $url , taskId = $id , lastTs = $lastTs")
+            if(fileName != null){
+                m3u8DownloadTask.resume(url , taskListener , fileName , lastTs)
+            }
+
+        }else if (url != null) {
             m3u8Task = M3U8Task(url)
             M3U8Log.d("DO WORK ::: fileName = $fileName , url = $url  , taskId = $id")
             if (fileName != null) {
@@ -112,9 +123,6 @@ class DownloadWorker(context: Context , params: WorkerParameters ) : Worker(cont
         }
         return Result.success()
     }
-
-    // Background process update UI Main Thread
-
 
     override fun onStopped() {
         m3u8DownloadTask.stop()

@@ -140,24 +140,6 @@ class M3u8Downloader {
     return null;
   }
 
-  static Future<void> cancel({required String taskId}) async {
-    assert(_initialized, "M3U8 Downloader has not been initialized");
-    try {
-      return await _channel.invokeMethod<void>('cancel', {'task_id': taskId});
-    } on PlatformException catch (e) {
-      _log(e.message);
-    }
-  }
-
-  static Future<void> cancelAll() async {
-    assert(_initialized, "M3U8 Downloader has not been initialized");
-    try {
-      return await _channel.invokeMethod<void>('cancelAll');
-    } on PlatformException catch (e) {
-      _log(e.message);
-    }
-  }
-
   static Future<void> pause({required String taskId}) async {
     assert(_initialized, "M3U8 Downloader has not been initialized");
     try {

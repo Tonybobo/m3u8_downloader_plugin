@@ -38,8 +38,6 @@ class M3u8DownloaderPlugin: MethodChannel.MethodCallHandler , FlutterPlugin {
     companion object{
         private const val CHANNEL = "com.tonybobo.m3u8_downloader"
         private const val TAG = "m3u8_download_task"
-        const val SHARED_PREFERENCES_KEY = "com.tonybobo.m3u8_downloader.pref"
-        const val CALLBACK_DISPATCHER_HANDLE_KEY = "callback_dispatcher_handle_key"
     }
 
     private fun onAttachedToEngine(applicationContext: Context? , messenger: BinaryMessenger){
@@ -69,16 +67,10 @@ class M3u8DownloaderPlugin: MethodChannel.MethodCallHandler , FlutterPlugin {
 
     private fun requireContext() = requireNotNull(context)
 
-    private fun sendUpdateProgress(id:String , status:DownloadStatus , progress: Int){
-        val args:MutableMap<String , Any> = HashMap()
-        args["task_id"] = id
-        args["status"] = status.ordinal
-        args["progress"] = progress
-        flutterChannel?.invokeMethod("updateProgress" , args)
-    }
     private fun buildRequest(
         url:String?,
         filename: String?,
+        lastTs: String?
     ): WorkRequest {
         return OneTimeWorkRequest.Builder(DownloadWorker::class.java)
             .setConstraints(
@@ -93,6 +85,7 @@ class M3u8DownloaderPlugin: MethodChannel.MethodCallHandler , FlutterPlugin {
                 Data.Builder()
                     .putString(DownloadWorker.ARG_URL , url)
                     .putString(DownloadWorker.ARG_FILE_NAME , filename)
+                    .putString(DownloadWorker.ARG_LAST_TS , lastTs)
                     .putLong(DownloadWorker.ARG_CALLBACK_HANDLE, callbackHandle)
                     .putInt(DownloadWorker.ARG_STEP , step)
                     .putBoolean(DownloadWorker.ARG_DEBUG , M3U8DownloadConfig.getDebugMode())
@@ -113,10 +106,8 @@ class M3u8DownloaderPlugin: MethodChannel.MethodCallHandler , FlutterPlugin {
             "loadTasksWithRawQuery" -> loadTasksWithRawQuery(call , result)
             "registerCallback" -> registerCallback(call, result)
             "enqueue" -> enqueue(call, result)
-//            "cancel" -> cancel(call , result)
-//            "cancelAll" -> cancelAll(result)
             "pause" -> pause(call , result)
-//            "resume" -> resume(call, result)
+            "resume" -> resume(call, result)
 //            "retry" -> retry(call ,result)
 //            "open" -> open(call , result)
 //            "remove" -> remove(call ,result)
@@ -130,8 +121,8 @@ class M3u8DownloaderPlugin: MethodChannel.MethodCallHandler , FlutterPlugin {
         val debugMode = args[1].toString().toInt()
         M3U8Log.d("background callback handle: $callbackHandle , debug: $debugMode")
         M3U8DownloadConfig.setDebugMode(debugMode == 1)
-        val pref = context?.getSharedPreferences(SHARED_PREFERENCES_KEY , Context.MODE_PRIVATE)
-        pref?.edit()?.putLong(CALLBACK_DISPATCHER_HANDLE_KEY , callbackHandle)?.apply()
+        M3U8DownloadConfig.setCallbackHandle(callbackHandle)
+
         result.success(null)
     }
 
@@ -158,7 +149,7 @@ class M3u8DownloaderPlugin: MethodChannel.MethodCallHandler , FlutterPlugin {
             val item: MutableMap<String , Any?> = HashMap()
             item["task_id"] = task.taskId
             item["status"] = task.status.ordinal
-            item["url"] = task.url;
+            item["url"] = task.url
             item["progress"] = task.progress
             item["file_name"] = task.filename
             item["time_created"] = task.timeCreated
@@ -197,11 +188,12 @@ class M3u8DownloaderPlugin: MethodChannel.MethodCallHandler , FlutterPlugin {
         val request: WorkRequest = buildRequest(
             url,
             filename,
+            null,
         )
         WorkManager.getInstance(requireContext()).enqueue(request)
         val taskId:String = request.id.toString()
         result.success(taskId)
-        sendUpdateProgress(taskId , DownloadStatus.ENQUEUED , 0  )
+
 //        taskDao!!.insertOrUpdateNewTask(
 //            taskId,
 //            DownloadStatus.ENQUEUED,
@@ -211,17 +203,6 @@ class M3u8DownloaderPlugin: MethodChannel.MethodCallHandler , FlutterPlugin {
 //        )
     }
 
-//    private fun cancel(call: MethodCall , result: Result){
-//       val taskId: String = call.requireArgument("task_id")
-//        WorkManager.getInstance(requireContext()).cancelWorkById(UUID.fromString(taskId))
-//        result.success(null)
-//    }
-
-//    private fun cancelAll(result: Result){
-//        WorkManager.getInstance(requireContext()).cancelAllWorkByTag(TAG)
-//        result.success(null)
-//    }
-
     private fun pause(call: MethodCall , result: Result){
         val taskId:String = call.requireArgument("task_id")
         taskDao!!.updateTask(taskId , DownloadStatus.PAUSED )
@@ -229,40 +210,32 @@ class M3u8DownloaderPlugin: MethodChannel.MethodCallHandler , FlutterPlugin {
         result.success(null)
     }
 
-//    private fun resume(call: MethodCall , result: Result){
-//       val taskId:String = call.requireArgument("task_id")
-//        val task = taskDao!!.loadTask(taskId)
-//        if(task != null){
-//           if(task.status == DownloadStatus.PAUSED){
-//               val filename = task.filename
-//               val partialFilePath = task.savedDir + File.separator + filename
-//               val partialFile = File(partialFilePath)
-//               if(partialFile.exists()){
-//                   val request: WorkRequest = buildRequest(
-//                       task.url,
-//                       task.savedDir,
-//                       task.filename,
-//                        false
-//                   )
-//                   val newTaskId:String = request.id.toString()
-//                   result.success(newTaskId)
-//                   sendUpdateProgress(newTaskId, DownloadStatus.RUNNING , task.progress)
-//                   taskDao!!.updateTask(taskId,newTaskId,DownloadStatus.RUNNING,task.progress,false)
-//                   WorkManager.getInstance(requireContext()).enqueue(request)
-//               }else{
-//                   taskDao!!.updateTask(taskId,false)
-//                   result.error(
-//                       invalidData,
-//                       "No partial TS folder , this task cannot be resumed",
-//                       null
-//                   )
-//               }
-//           }else{
-//               result.error(invalidStatus , "only paused task can be resumed" , null)
-//           }
-//        }else{
-//            result.error(invalidTaskId , "Didn't found the corresponding task", null)
-//        }
+    private fun resume(call: MethodCall , result: Result){
+       val taskId:String = call.requireArgument("task_id")
+        val task = taskDao!!.loadTask(taskId)
+        if(task != null){
+           if(task.status == DownloadStatus.PAUSED){
+               val request: WorkRequest = buildRequest(
+                       task.url,
+                       task.filename,
+                       task.lastTs
+                   )
+                   val newTaskId:String = request.id.toString()
+                   result.success(newTaskId)
+                   taskDao!!.updateTask(taskId,newTaskId,DownloadStatus.RUNNING)
+                   WorkManager.getInstance(requireContext()).enqueue(request)
+               }else{
+                   taskDao!!.updateTask(taskId,DownloadStatus.FAILED)
+                   result.error(
+                       taskId,
+                       "Task is not re-summable ",
+                       null
+                   )
+               }
+           }else{
+               result.error(taskId , "TaskId cannot be found" , null)
+           }
+        }
     }
 
 //    private fun retry(call: MethodCall, result: Result){
