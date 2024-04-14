@@ -81,7 +81,6 @@ class FlutterBackgroundExecutor : MethodChannel.MethodCallHandler {
                 M3U8Log.d("isolateStarted : $isolateStarted")
                 isolateQueue.add(args)
             }else {
-                M3U8Log.d("call flutter : $callbackHandle , $id , ${(progress* 100).toInt()} , ${status.ordinal}")
                 Handler(applicationContext.mainLooper).post{
                     backgroundChannel?.invokeMethod("", args)
                 }

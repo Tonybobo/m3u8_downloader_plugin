@@ -6,7 +6,6 @@ import android.database.sqlite.SQLiteDatabase
 import android.provider.BaseColumns
 import com.tonybobo.m3u8_downloader.downloader.DownloadStatus
 import com.tonybobo.m3u8_downloader.downloader.DownloadTask
-import com.tonybobo.m3u8_downloader.utils.M3U8Log
 import java.lang.Exception
 
 class TaskDao(private val dbHelper: TaskDbHelper){

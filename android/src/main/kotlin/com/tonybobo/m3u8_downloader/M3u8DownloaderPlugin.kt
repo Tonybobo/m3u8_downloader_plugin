@@ -110,7 +110,7 @@ class M3u8DownloaderPlugin: MethodChannel.MethodCallHandler , FlutterPlugin {
             "resume" -> resume(call, result)
 //            "retry" -> retry(call ,result)
 //            "open" -> open(call , result)
-//            "remove" -> remove(call ,result)
+            "remove" -> remove(call ,result)
             else -> result.notImplemented()
         }
     }
@@ -193,14 +193,13 @@ class M3u8DownloaderPlugin: MethodChannel.MethodCallHandler , FlutterPlugin {
         WorkManager.getInstance(requireContext()).enqueue(request)
         val taskId:String = request.id.toString()
         result.success(taskId)
-
-//        taskDao!!.insertOrUpdateNewTask(
-//            taskId,
-//            DownloadStatus.ENQUEUED,
-//            url,
-//            0,
-//            filename,
-//        )
+        taskDao!!.insertOrUpdateNewTask(
+            taskId,
+            DownloadStatus.ENQUEUED,
+            url,
+            0,
+            filename,
+        )
     }
 
     private fun pause(call: MethodCall , result: Result){
@@ -236,7 +235,6 @@ class M3u8DownloaderPlugin: MethodChannel.MethodCallHandler , FlutterPlugin {
                result.error(taskId , "TaskId cannot be found" , null)
            }
         }
-    }
 
 //    private fun retry(call: MethodCall, result: Result){
 //      val taskId: String = call.requireArgument("task_id")
@@ -297,14 +295,14 @@ class M3u8DownloaderPlugin: MethodChannel.MethodCallHandler , FlutterPlugin {
 //
 //    }
 
-//    private fun remove(call: MethodCall, result: Result){
-//        val taskId:String = call.requireArgument("task_id")
-//        val shouldDeleteContent: Boolean = call.requireArgument("should_delete_content")
-//        val task = taskDao!!.loadTask(taskId)
-//        if(task != null){
-//            if(task.status == DownloadStatus.ENQUEUED || task.status == DownloadStatus.RUNNING){
-//                WorkManager.getInstance(requireContext()).cancelWorkById(UUID.fromString(taskId))
-//            }
+    private fun remove(call: MethodCall, result: Result){
+        val taskId:String = call.requireArgument("task_id")
+        val shouldDeleteContent: Boolean = call.requireArgument("should_delete_content")
+        val task = taskDao!!.loadTask(taskId)
+        if(task != null){
+            if(task.status == DownloadStatus.ENQUEUED || task.status == DownloadStatus.RUNNING){
+                WorkManager.getInstance(requireContext()).cancelWorkById(UUID.fromString(taskId))
+            }
 //            if(shouldDeleteContent){
 //                val filename = task.filename
 //                val savedFilePath = task.savedDir + File.separator + filename
@@ -318,13 +316,13 @@ class M3u8DownloaderPlugin: MethodChannel.MethodCallHandler , FlutterPlugin {
 //                    tempFile.delete()
 //                }
 //            }
-//            taskDao!!.deleteTask(taskId)
+            taskDao!!.deleteTask(taskId)
 //            NotificationManagerCompat.from(requireContext()).cancel(task.primaryId)
-//            result.success(null)
-//        }else{
-//            result.error(invalidTaskId, "not found task corresponding with given Task Id", null)
-//        }
-//    }
+            result.success(null)
+        }else{
+            result.error(taskId, "not found task corresponding with given Task Id", null)
+        }
+    }
 
 //    private fun deleteVideoInMediaStore(file: File){
 //
@@ -344,6 +342,5 @@ class M3u8DownloaderPlugin: MethodChannel.MethodCallHandler , FlutterPlugin {
 //
 //        }
 //        videoCursor?.close()
-//    }
-
+}
 

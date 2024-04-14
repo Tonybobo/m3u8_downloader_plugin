@@ -119,10 +119,10 @@ class _MyHomePageState extends State<MyHomePage> {
     await M3u8Downloader.pause(taskId: task.taskId!);
   }
 
-  // Future<void> _resumeDownload(TaskInfo task) async {
-  //   final newTaskId = await M3u8Downloader.resume(taskId: task.taskId!);
-  //   task.taskId = newTaskId;
-  // }
+  Future<void> _resumeDownload(TaskInfo task) async {
+    final newTaskId = await M3u8Downloader.resume(taskId: task.taskId!);
+    task.taskId = newTaskId;
+  }
 
   // Future<void> _retryDownload(TaskInfo task) async {
   //   final newTaskId = await M3u8Downloader.resume(taskId: task.taskId!);
@@ -138,13 +138,13 @@ class _MyHomePageState extends State<MyHomePage> {
   //   return M3u8Downloader.open(taskId: taskId);
   // }
 
-  // Future<void> _delete(TaskInfo task) async {
-  //   await M3u8Downloader.remove(
-  //       taskId: task.taskId!, shouldDeleteContent: true);
+  Future<void> _delete(TaskInfo task) async {
+    await M3u8Downloader.remove(
+        taskId: task.taskId!, shouldDeleteContent: true);
 
-  //   await _prepare();
-  //   setState(() {});
-  // }
+    await _prepare();
+    setState(() {});
+  }
 
   Future<bool> _checkPermission() async {
     if (Platform.isIOS) return false;
@@ -292,15 +292,16 @@ class _MyHomePageState extends State<MyHomePage> {
                     _pauseDownload(task);
 
                   case DownloadTaskStatus.paused:
-                  // _resumeDownload(task);
+                    _resumeDownload(task);
                   case DownloadTaskStatus.complete:
-                  // _delete(task);
+                    _delete(task);
 
                   case DownloadTaskStatus.canceled:
                   // _delete(task);
 
                   case DownloadTaskStatus.failed:
-                  // _retryDownload(task);
+                    // _retryDownload(task);
+                    _delete(task);
                   default:
                     return;
                 }

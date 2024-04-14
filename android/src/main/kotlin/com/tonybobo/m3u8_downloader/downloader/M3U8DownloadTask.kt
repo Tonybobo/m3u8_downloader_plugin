@@ -45,6 +45,7 @@ class M3U8DownloadTask(context: Context) {
     private var onTaskListener : OnTaskDownloadListener? = null
     private var connTimeout:Int = 0
     private var readTimeOut: Int = 0
+    private var lastTs:String = ""
 
     init {
         connTimeout = M3U8DownloadConfig.getConnTimeout()
@@ -77,7 +78,8 @@ class M3U8DownloadTask(context: Context) {
 
     private fun removeDownloadedTs(m3U8: M3U8 , lastTs: String){
         val index = m3U8.tsList.indexOfFirst { it.url == lastTs }
-        if(index != -1) m3U8.tsList = m3U8.tsList.drop(index + 1).toMutableList()
+        M3U8Log.d("Found index : $index")
+        if(index != -1) m3U8.tsList = m3U8.tsList.drop(index).toMutableList()
     }
 
     fun download(url:String , onTaskDownloadListener: OnTaskDownloadListener , fileName:String){
@@ -105,7 +107,9 @@ class M3U8DownloadTask(context: Context) {
     private fun getM3U8Info(url: String , callback: OnInfoCallback , lastTs: String?){
         try {
             if(lastTs != null){
-
+                val m3u8 = M3U8Util.parseLocalM3u8("$saveDir/$LOCAL_FILE", url)
+                M3U8Log.d("Read local M3U8")
+                callback.success(m3u8)
             }else{
                 val m3u8 = M3U8Util.parseIndex(url)
                 MediaScannerConnection.scanFile(ctx , arrayOf("$saveDir/$LOCAL_FILE") ,
@@ -195,10 +199,8 @@ class M3U8DownloadTask(context: Context) {
                        file.delete()
                 }
                 curLength.set(curLength.get() + file.length())
-                onTaskListener!!.onDownloadItem(itemFileSize , totalTs , curTs.get() , ts.url)
-            }else{
-                M3U8Log.d("${file.path} exists")
-                file.delete()
+                onTaskListener!!.onDownloadItem(itemFileSize , totalTs , curTs.get())
+                lastTs = ts.url
             }
             itemFileSize = file.length()
             ts.fileSize = itemFileSize
@@ -264,9 +266,7 @@ class M3U8DownloadTask(context: Context) {
             if(mp4File != null && mp4File.exists() && mp4File.length().toInt() == 0 ){
                 mp4File.delete()
             }
-            if(inputStream != null){
-                inputStream.close()
-            }
+            inputStream?.close()
             outStream?.close()
         }
     }
@@ -282,7 +282,7 @@ class M3U8DownloadTask(context: Context) {
             timer = null
         }
         isRunning = false
-        onTaskListener!!.onStop()
+        onTaskListener!!.onStop(lastTs)
     }
 
 }

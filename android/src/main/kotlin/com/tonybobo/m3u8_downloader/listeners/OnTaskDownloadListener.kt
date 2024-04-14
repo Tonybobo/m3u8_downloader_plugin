@@ -7,7 +7,7 @@ interface OnTaskDownloadListener {
 
     fun onStartDownload(m3u8: M3U8 , curTs:Int)
 
-    fun onDownloadItem(itemFileSize:Long , totalTs: Int, curTs: Int , lastTsFile : String)
+    fun onDownloadItem(itemFileSize:Long , totalTs: Int, curTs: Int )
 
     fun onProgress(curLength:Long)
 
@@ -17,5 +17,5 @@ interface OnTaskDownloadListener {
 
     fun onError(error:Throwable)
 
-    fun onStop()
+    fun onStop(lastTsFile:String)
 }

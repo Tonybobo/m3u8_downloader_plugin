@@ -105,10 +105,10 @@ class DownloadListItem extends StatelessWidget {
               onPressed: () => onActionTap?.call(task),
               constraints: const BoxConstraints(minHeight: 32, minWidth: 32),
               icon: const Icon(
-                Icons.refresh,
-                color: Colors.green,
+                Icons.delete,
+                color: Colors.red,
               ),
-              tooltip: 'Refresh',
+              tooltip: 'Delete',
             )
           ],
         );

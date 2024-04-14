@@ -36,15 +36,14 @@ class DownloadWorker(context: Context , params: WorkerParameters ) : Worker(cont
             backgroundExecutor.sendUpdateProcessEvent(id , DownloadStatus.RUNNING , downloadProgress , inputData , context)
         }
 
-        override fun onDownloadItem(itemFileSize: Long, totalTs: Int, curTs: Int , lastTsFile: String) {
+        override fun onDownloadItem(itemFileSize: Long, totalTs: Int, curTs: Int ) {
             // save last downloaded ts filename for resuming
             if(!m3u8DownloadTask.isRunning) return
             if(totalTs > 0) downloadProgress = 1.0f * curTs/totalTs
             dbHelper = TaskDbHelper.getInstance(context)
             taskDao = TaskDao(dbHelper!!)
-            taskDao!!.updateTask(id.toString() , DownloadStatus.COMPLETED , downloadProgress.toInt() , lastTsFile)
 
-            M3U8Log.d("onDownloadItem: $itemFileSize / ${m3u8Task!!.getTotalSize()} | $curTs / $totalTs  ,  downloadProgress:  $downloadProgress , lastTsFile : $lastTsFile ")
+            M3U8Log.d("onDownloadItem: $itemFileSize / ${m3u8Task!!.getTotalSize()} | $curTs / $totalTs  ,  downloadProgress:  $downloadProgress ")
         }
 
         override fun onProgress(curLength: Long) {
@@ -76,12 +75,15 @@ class DownloadWorker(context: Context , params: WorkerParameters ) : Worker(cont
             taskDao = TaskDao(dbHelper!!)
             taskDao!!.updateTask(id.toString(), DownloadStatus.FAILED , downloadProgress.toInt() , null)
             M3U8Log.e("onError: ${error.message}")
+            backgroundExecutor.sendUpdateProcessEvent(id , DownloadStatus.FAILED , downloadProgress , inputData , context )
         }
 
-        override fun onStop() {
+        override fun onStop(lastTsFile:String) {
             dbHelper = TaskDbHelper.getInstance(context)
             taskDao = TaskDao(dbHelper!!)
-            taskDao!!.updateTask(id.toString() , DownloadStatus.PAUSED , downloadProgress.toInt() , null)
+            taskDao!!.updateTask(id.toString() , DownloadStatus.PAUSED , downloadProgress.toInt() , lastTsFile)
+            M3U8Log.d("Paused Task id: $id , progress: $downloadProgress , LastTsFile:$lastTsFile")
+            backgroundExecutor.sendUpdateProcessEvent(id , DownloadStatus.PAUSED , downloadProgress , inputData , context )
         }
 
     }
