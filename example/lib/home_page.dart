@@ -91,10 +91,6 @@ class _MyHomePageState extends State<MyHomePage> {
   @pragma('vm:entry-point')
   static void downloadCallback(String id, int status, int progress) {
     // ignore: avoid_print
-    print(
-      'Callback on UI Isolate: '
-      'task ($id) is in status ($status) and progress ($progress)',
-    );
     IsolateNameServer.lookupPortByName('downloader_send_port')
         ?.send([id, status, progress]);
   }
@@ -139,8 +135,7 @@ class _MyHomePageState extends State<MyHomePage> {
   // }
 
   Future<void> _delete(TaskInfo task) async {
-    await M3u8Downloader.remove(
-        taskId: task.taskId!, shouldDeleteContent: true);
+    await M3u8Downloader.remove(taskId: task.taskId!);
 
     await _prepare();
     setState(() {});
@@ -228,7 +223,7 @@ class _MyHomePageState extends State<MyHomePage> {
       if (Platform.isIOS) {
         directory = await getApplicationDocumentsDirectory();
       } else {
-        directory = Directory('/storage/emulated/0/Download/m3u8Downloader');
+        directory = Directory('/storage/emulated/0/Download');
         if (!directory.existsSync()) await directory.create();
       }
     } catch (err) {
@@ -277,6 +272,8 @@ class _MyHomePageState extends State<MyHomePage> {
             return DownloadListItem(
               data: item,
               onTap: (task) async {
+                _delete(task!);
+
                 // final success = await _openDownloadedFile(task);
                 // if (!success) {
                 //   ScaffoldMessenger.of(context).showSnackBar(
@@ -301,6 +298,8 @@ class _MyHomePageState extends State<MyHomePage> {
 
                   case DownloadTaskStatus.failed:
                     // _retryDownload(task);
+                    _delete(task);
+                  case DownloadTaskStatus.enqueued:
                     _delete(task);
                   default:
                     return;

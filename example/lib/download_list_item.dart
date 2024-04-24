@@ -32,6 +32,15 @@ class DownloadListItem extends StatelessWidget {
                 color: Colors.green,
               ),
               tooltip: 'Pause',
+            ),
+            IconButton(
+              onPressed: () => onTap?.call(task),
+              constraints: const BoxConstraints(minHeight: 32, minWidth: 32),
+              icon: const Icon(
+                Icons.delete,
+                color: Colors.red,
+              ),
+              tooltip: 'Delete',
             )
           ],
         );
@@ -47,6 +56,15 @@ class DownloadListItem extends StatelessWidget {
                 color: Colors.yellow,
               ),
               tooltip: 'Resume',
+            ),
+            IconButton(
+              onPressed: () => onTap?.call(task),
+              constraints: const BoxConstraints(minHeight: 32, minWidth: 32),
+              icon: const Icon(
+                Icons.delete,
+                color: Colors.red,
+              ),
+              tooltip: 'Delete',
             )
           ],
         );
@@ -114,7 +132,25 @@ class DownloadListItem extends StatelessWidget {
         );
 
       case DownloadTaskStatus.enqueued:
-        return const Text('Pending', style: TextStyle(color: Colors.orange));
+        return Row(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: [
+            const Text(
+              'Pending',
+              style: TextStyle(color: Colors.yellow),
+            ),
+            IconButton(
+              onPressed: () => onActionTap?.call(task),
+              constraints: const BoxConstraints(minHeight: 32, minWidth: 32),
+              icon: const Icon(
+                Icons.delete,
+                color: Colors.red,
+              ),
+              tooltip: 'Delete',
+            )
+          ],
+        );
       default:
         return null;
     }

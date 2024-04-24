@@ -104,12 +104,11 @@ class TaskDao(private val dbHelper: TaskDbHelper){
         return result
     }
 
-    fun updateTask(taskId: String , status: DownloadStatus , progress: Int , lastTs: String?){
+    fun updateTask(taskId: String , status: DownloadStatus , progress: Int){
         val db = dbHelper.writableDatabase
         val values = ContentValues()
         values.put(TaskEntry.COLUMN_NAME_STATUS , status.ordinal)
         values.put(TaskEntry.COLUMN_NAME_PROGRESS, progress)
-        values.put(TaskEntry.COLUMN_NAME_LAST_TS , lastTs)
         db.beginTransaction()
         try {
            db.update(
@@ -195,7 +194,6 @@ class TaskDao(private val dbHelper: TaskDbHelper){
         val progress = cursor.getInt(cursor.getColumnIndexOrThrow(TaskEntry.COLUMN_NAME_PROGRESS))
         val filename = cursor.getString(cursor.getColumnIndexOrThrow(TaskEntry.COLUMN_NAME_FILE_NAME))
         val timeCreated = cursor.getLong(cursor.getColumnIndexOrThrow(TaskEntry.COLUMN_NAME_TIME_CREATED))
-        val lastTs = cursor.getString(cursor.getColumnIndexOrThrow(TaskEntry.COLUMN_NAME_LAST_TS))
 
         return DownloadTask(
             primaryId,
@@ -204,7 +202,6 @@ class TaskDao(private val dbHelper: TaskDbHelper){
             url,
             progress,
             filename,
-            lastTs,
             timeCreated,
         )
     }

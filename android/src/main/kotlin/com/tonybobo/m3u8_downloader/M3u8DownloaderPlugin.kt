@@ -1,6 +1,13 @@
 package com.tonybobo.m3u8_downloader
 
+import android.content.ContentResolver
+import android.content.ContentUris
 import android.content.Context
+import android.media.MediaScannerConnection
+import android.media.MediaScannerConnection.OnScanCompletedListener
+import android.net.Uri
+import android.provider.MediaStore
+import android.support.v4.os.IResultReceiver._Parcel
 import androidx.work.BackoffPolicy
 import androidx.work.Constraints
 import androidx.work.Data
@@ -14,6 +21,7 @@ import com.tonybobo.m3u8_downloader.downloader.DownloadStatus
 import com.tonybobo.m3u8_downloader.downloader.DownloadWorker
 import com.tonybobo.m3u8_downloader.downloader.M3U8DownloadConfig
 import com.tonybobo.m3u8_downloader.utils.M3U8Log
+import com.tonybobo.m3u8_downloader.utils.M3U8Util
 
 import io.flutter.embedding.engine.plugins.FlutterPlugin
 import io.flutter.embedding.engine.plugins.FlutterPlugin.FlutterPluginBinding
@@ -21,6 +29,7 @@ import io.flutter.plugin.common.BinaryMessenger
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
 import io.flutter.plugin.common.MethodChannel.Result
+import java.io.File
 import java.util.UUID
 import java.util.concurrent.TimeUnit
 
@@ -70,7 +79,7 @@ class M3u8DownloaderPlugin: MethodChannel.MethodCallHandler , FlutterPlugin {
     private fun buildRequest(
         url:String?,
         filename: String?,
-        lastTs: String?
+        lastProgress: Float = 0.0f,
     ): WorkRequest {
         return OneTimeWorkRequest.Builder(DownloadWorker::class.java)
             .setConstraints(
@@ -85,10 +94,10 @@ class M3u8DownloaderPlugin: MethodChannel.MethodCallHandler , FlutterPlugin {
                 Data.Builder()
                     .putString(DownloadWorker.ARG_URL , url)
                     .putString(DownloadWorker.ARG_FILE_NAME , filename)
-                    .putString(DownloadWorker.ARG_LAST_TS , lastTs)
                     .putLong(DownloadWorker.ARG_CALLBACK_HANDLE, callbackHandle)
                     .putInt(DownloadWorker.ARG_STEP , step)
                     .putBoolean(DownloadWorker.ARG_DEBUG , M3U8DownloadConfig.getDebugMode())
+                    .putFloat(DownloadWorker.ARG_LAST_PROGRESS , lastProgress)
                     .build()
             )
             .build()
@@ -188,7 +197,6 @@ class M3u8DownloaderPlugin: MethodChannel.MethodCallHandler , FlutterPlugin {
         val request: WorkRequest = buildRequest(
             url,
             filename,
-            null,
         )
         WorkManager.getInstance(requireContext()).enqueue(request)
         val taskId:String = request.id.toString()
@@ -217,7 +225,7 @@ class M3u8DownloaderPlugin: MethodChannel.MethodCallHandler , FlutterPlugin {
                val request: WorkRequest = buildRequest(
                        task.url,
                        task.filename,
-                       task.lastTs
+                       task.progress.toFloat()
                    )
                    val newTaskId:String = request.id.toString()
                    result.success(newTaskId)
@@ -297,25 +305,19 @@ class M3u8DownloaderPlugin: MethodChannel.MethodCallHandler , FlutterPlugin {
 
     private fun remove(call: MethodCall, result: Result){
         val taskId:String = call.requireArgument("task_id")
-        val shouldDeleteContent: Boolean = call.requireArgument("should_delete_content")
         val task = taskDao!!.loadTask(taskId)
         if(task != null){
             if(task.status == DownloadStatus.ENQUEUED || task.status == DownloadStatus.RUNNING){
                 WorkManager.getInstance(requireContext()).cancelWorkById(UUID.fromString(taskId))
             }
-//            if(shouldDeleteContent){
-//                val filename = task.filename
-//                val savedFilePath = task.savedDir + File.separator + filename
-//                val tempFile = File(savedFilePath)
-//                if(tempFile.exists()){
-//                    try {
-//                        deleteVideoInMediaStore(tempFile)
-//                    }catch (e:SecurityException){
-//                        Log.d("M3u8Downloader" , "Failed to delete file in media store , will fall back to normal delete()")
-//                    }
-//                    tempFile.delete()
-//                }
-//            }
+            val filename = task.filename
+            val fileDir = M3U8Util.getSaveFileDir(filename!!)
+            M3U8Util.clearDir(File(fileDir))
+            val mp4File = File("$fileDir.mp4")
+            if(mp4File.exists()){
+                M3U8Log.d("Deleting MP4")
+                deleteVideoInMediaStore(mp4File)
+            }
             taskDao!!.deleteTask(taskId)
 //            NotificationManagerCompat.from(requireContext()).cancel(task.primaryId)
             result.success(null)
@@ -324,23 +326,13 @@ class M3u8DownloaderPlugin: MethodChannel.MethodCallHandler , FlutterPlugin {
         }
     }
 
-//    private fun deleteVideoInMediaStore(file: File){
-//
-//        val projection = arrayOf(MediaStore.Images.Media._ID)
-//        val selectionArgs = arrayOf<String>(file.absolutePath)
-//        val imageQueryUri: Uri = MediaStore.Images.Media.EXTERNAL_CONTENT_URI
-//        val imageSelection: String = MediaStore.Images.Media.DATA + " = ?"
-//
-//        val contentResolver: ContentResolver = requireContext().contentResolver
-//
-//        val videoCursor = contentResolver.query(imageQueryUri, projection , imageSelection , selectionArgs , null )
-//        if(videoCursor != null && videoCursor.moveToFirst()){
-//
-//            val id: Long = videoCursor.getLong(videoCursor.getColumnIndexOrThrow(MediaStore.Images.Media._ID))
-//            val deleteUri: Uri = ContentUris.withAppendedId(MediaStore.Images.Media.EXTERNAL_CONTENT_URI , id)
-//            contentResolver.delete(deleteUri, null ,null)
-//
-//        }
-//        videoCursor?.close()
+    private fun deleteVideoInMediaStore(file: File){
+        MediaScannerConnection.scanFile(context , arrayOf<String>(file.absolutePath) , arrayOf("video/mp4")
+        ) { _, uri ->
+            if (uri != null) {
+                requireContext().contentResolver.delete(uri, null, null)
+            }
+        }
+    }
 }
 

@@ -17,5 +17,5 @@ interface OnTaskDownloadListener {
 
     fun onError(error:Throwable)
 
-    fun onStop(lastTsFile:String)
+    fun onStop()
 }

@@ -36,11 +36,9 @@ class M3U8DownloadTask(context: Context) {
     private var currentM3u8:M3U8? = null
     private var timer: Timer? = Timer()
     var isRunning = false
-    private val curTs:AtomicInteger = AtomicInteger(0)
-    private val curLength: AtomicLong = AtomicLong(0)
-    @Volatile
+    private var curTs = 0
+    private var curLength: Long = 0;
     private var totalTs:Int = 0
-    @Volatile
     private var itemFileSize:Long = 0
     private var onTaskListener : OnTaskDownloadListener? = null
     private var connTimeout:Int = 0
@@ -50,36 +48,6 @@ class M3U8DownloadTask(context: Context) {
     init {
         connTimeout = M3U8DownloadConfig.getConnTimeout()
         readTimeOut = M3U8DownloadConfig.getReadTimeout()
-    }
-
-    fun resume(url: String , onTaskDownloadListener: OnTaskDownloadListener , fileName: String , lastTs:String){
-        saveDir = M3U8Util.getSaveFileDir(fileName)
-        onTaskListener = onTaskDownloadListener
-        onTaskListener!!.onStart()
-
-        val file = File("$fileName.mp4")
-        if(file.exists()){
-            if(timer != null){
-                timer!!.cancel()
-            }
-            return
-        }
-        if(!isRunning) {
-            getM3U8Info(url, object : OnInfoCallback {
-                override fun success(m3u8: M3U8) {
-                    removeDownloadedTs(m3u8 , lastTs)
-                    start(m3u8)
-                }
-            }, lastTs)
-        }else{
-            handlerError(Throwable("Task is  running"))
-        }
-    }
-
-    private fun removeDownloadedTs(m3U8: M3U8 , lastTs: String){
-        val index = m3U8.tsList.indexOfFirst { it.url == lastTs }
-        M3U8Log.d("Found index : $index")
-        if(index != -1) m3U8.tsList = m3U8.tsList.drop(index).toMutableList()
     }
 
     fun download(url:String , onTaskDownloadListener: OnTaskDownloadListener , fileName:String){
@@ -98,33 +66,20 @@ class M3U8DownloadTask(context: Context) {
                 override fun success(m3u8: M3U8) {
                     start(m3u8)
                 }
-            } , null)
+            }  )
         }else {
             handlerError(Throwable("Task is  running"))
         }
     }
 
-    private fun getM3U8Info(url: String , callback: OnInfoCallback , lastTs: String?){
-        try {
-            if(lastTs != null){
-                val m3u8 = M3U8Util.parseLocalM3u8("$saveDir/$LOCAL_FILE", url)
-                M3U8Log.d("Read local M3U8")
-                callback.success(m3u8)
-            }else{
-                val m3u8 = M3U8Util.parseIndex(url)
-                MediaScannerConnection.scanFile(ctx , arrayOf("$saveDir/$LOCAL_FILE") ,
-                    arrayOf("audio/x-mpegurl"), null)
-                M3U8Util.createLocalM3u8(saveDir , m3u8 , if(TextUtils.isEmpty(m3u8.key)) null else m3u8.key)
-                callback.success(m3u8)
-            }
-        } catch (e: Exception) {
-            handlerError(e)
-        }
+    private fun getM3U8Info(url: String , callback: OnInfoCallback ){
+        val m3u8 = M3U8Util.parseIndex(url)
+        callback.success(m3u8)
     }
 
     private fun start(m3U8: M3U8){
         currentM3u8 = m3U8
-        onTaskListener!!.onStartDownload(currentM3u8!! , curTs.get()  )
+        onTaskListener!!.onStartDownload(currentM3u8!! , curTs  )
         M3U8Log.d("start download, save dir: $saveDir")
 
         try {
@@ -160,8 +115,6 @@ class M3U8DownloadTask(context: Context) {
             }
         }
         totalTs = currentM3u8!!.tsList.size
-        curTs.set(0)
-        curLength.set(0)
         isRunning = true
         if(timer != null){
             timer!!.cancel()
@@ -169,26 +122,27 @@ class M3U8DownloadTask(context: Context) {
         timer = Timer()
         timer!!.schedule( object : TimerTask(){
            override fun run(){
-               onTaskListener!!.onProgress(curLength.get())
+               onTaskListener!!.onProgress(curLength)
            }
         } , 0 , 1500)
 
         val basePath = currentM3u8!!.basesUrl
         for(ts in currentM3u8!!.tsList){
             val file =  File(dir.absolutePath + File.separator + ts.obtainEncodeTsFileName())
+            if(!isRunning) break
 
             if(!file.exists()){
+                MediaScannerConnection.scanFile(ctx , arrayOf(file.path), arrayOf("video/mp2t"), null)
                 var readFinished = false
                 try {
                     val url = ts.obtainFullUrl(basePath)
                     val conn = url.openConnection() as HttpURLConnection
-                    conn.connectTimeout = if (connTimeout < 2000) 2000 else connTimeout
-                    conn.readTimeout = if(readTimeOut < 2000) 2000 else connTimeout
+                    conn.connectTimeout = if (connTimeout < 20000) 20000 else connTimeout
+                    conn.readTimeout = if(readTimeOut < 20000) 20000 else connTimeout
 
                     if(conn.responseCode == 200)
                         conn.inputStream.use { input -> file.outputStream().use { output -> input.copyTo(output) }}
                     readFinished = true
-                    conn.disconnect()
 
                 }catch (e: MalformedURLException){
                    handlerError(e)
@@ -198,13 +152,15 @@ class M3U8DownloadTask(context: Context) {
                    if(!readFinished && file.exists())
                        file.delete()
                 }
-                curLength.set(curLength.get() + file.length())
-                onTaskListener!!.onDownloadItem(itemFileSize , totalTs , curTs.get())
+                curLength += file.length()
+                onTaskListener!!.onDownloadItem(itemFileSize , totalTs , curTs++)
                 lastTs = ts.url
+            }else{
+                curTs++
+                M3U8Log.d("${ts.url} exists")
             }
             itemFileSize = file.length()
             ts.fileSize = itemFileSize
-            curTs.incrementAndGet()
         }
     }
 
@@ -222,7 +178,6 @@ class M3U8DownloadTask(context: Context) {
             if(mp4File.exists()){
                 mp4File.delete()
             }
-            MediaScannerConnection.scanFile(ctx , arrayOf(mp4FilePath), arrayOf("video/mp4"), null)
             outStream = FileOutputStream(mp4File)
             var bytes = ByteArray(BUFFER_SIZE)
             for(ts in currentM3u8!!.tsList){
@@ -251,8 +206,8 @@ class M3U8DownloadTask(context: Context) {
 
             currentM3u8!!.localPath = mp4FilePath
             M3U8Util.clearDir(dir)
+            MediaScannerConnection.scanFile(ctx , arrayOf(mp4FilePath), arrayOf("video/mp4"), null)
 
-            onTaskListener!!.onSuccess(currentM3u8!!)
         }catch (e:FileNotFoundException){
             e.printStackTrace()
             handlerError(e)
@@ -282,7 +237,7 @@ class M3U8DownloadTask(context: Context) {
             timer = null
         }
         isRunning = false
-        onTaskListener!!.onStop(lastTs)
+        onTaskListener!!.onStop()
     }
 
 }

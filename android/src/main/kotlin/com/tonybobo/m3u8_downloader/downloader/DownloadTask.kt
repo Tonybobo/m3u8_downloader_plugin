@@ -7,6 +7,5 @@ data class DownloadTask(
     var url: String?,
     var progress: Int,
     var filename: String?,
-    var lastTs: String?,
     var timeCreated: Long,
 )

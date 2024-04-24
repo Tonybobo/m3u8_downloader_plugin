@@ -187,14 +187,12 @@ class M3u8Downloader {
 
   static Future<void> remove({
     required String taskId,
-    bool shouldDeleteContent = true,
   }) async {
     assert(_initialized, "M3U8 Downloader has not been initialized");
 
     try {
       return await _channel.invokeMethod('remove', {
         'task_id': taskId,
-        'should_delete_content': shouldDeleteContent,
       });
     } on PlatformException catch (e) {
       _log(e.message);
