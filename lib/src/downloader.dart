@@ -167,17 +167,14 @@ class M3u8Downloader {
     }
   }
 
-  static Future<String?> retry(
-      {required String taskId,
-      bool requiresStorageNotLow = true,
-      int timeout = 15000}) async {
+  static Future<String?> retry({
+    required String taskId,
+  }) async {
     assert(_initialized, "M3U8 Downloader has not been initialized");
 
     try {
       return await _channel.invokeMethod('retry', {
         'task_id': taskId,
-        'requires_storage_not_low': requiresStorageNotLow,
-        'timeout': timeout
       });
     } on PlatformException catch (e) {
       _log(e.message);

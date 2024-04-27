@@ -1,5 +1,6 @@
 package com.tonybobo.m3u8_downloader.utils
 
+import android.annotation.SuppressLint
 import com.tonybobo.m3u8_downloader.bean.M3U8
 import com.tonybobo.m3u8_downloader.bean.M3U8Ts
 import com.tonybobo.m3u8_downloader.downloader.M3U8DownloadConfig
@@ -11,6 +12,12 @@ import java.io.File
 import java.io.FileWriter
 import java.io.InputStreamReader
 import java.net.URL
+import java.security.SecureRandom
+import java.security.cert.X509Certificate
+import javax.net.ssl.HttpsURLConnection
+import javax.net.ssl.SSLContext
+import javax.net.ssl.TrustManager
+import javax.net.ssl.X509TrustManager
 
 object M3U8Util {
     private const val KB:Float = 1024F
@@ -19,58 +26,58 @@ object M3U8Util {
     private const val LOCAL_FILE = "local.m3u8"
 
     fun parseIndex(url:String ):M3U8{
-     val baseUrl = URL(url)
-     val streams = BufferedReader(InputStreamReader(baseUrl.openStream()))
+         val baseUrl = URL(url)
+         val streams = BufferedReader(InputStreamReader(baseUrl.openStream()))
 
-     val m3u8 = M3U8()
-     m3u8.basesUrl = url
+         val m3u8 = M3U8()
+         m3u8.basesUrl = url
 
-     var seconds = 0.0F
-     var line: String
+         var seconds = 0.0F
+         var line: String
 
-     streams.useLines { lines ->
-         lines.forEach loop@ {
-             line = it
-             if (line.startsWith('#')) {
-                 if (line.startsWith("#EXTINF:")) {
-                     line = line.drop(line.indexOf(":")+ 1)
-                     if (line.endsWith(",")) {
-                         line = line.dropLast(1)
-                     }
-                     seconds = line.toFloat()
-                 } else if (line.startsWith("#EXT-X-KEY:")) {
-                     line = line.split("EXT-X-KEY:")[1]
-                     val arr: List<String> = line.split(",")
-                     for (s in arr) {
-                         if (s.contains("=")) {
-                             val k = s.split("=")[0]
-                             var v = s.split("=")[1]
-                             if (k == "URI") {
-                                 v = v.replace("\"", "")
-                                 v = v.replace("'", "")
-                                 val keyReader =
-                                     BufferedReader(InputStreamReader(URL(baseUrl, v).openStream()))
-                                 m3u8.key = (keyReader.readLine())
-                                 M3U8Log.d("M3U8 key:" + m3u8.key)
-                                 keyReader.close()
-                             } else if (k == "IV") {
-                                 m3u8.iv = v
-                                 M3U8Log.d("M3U8 IV: $v")
+         streams.useLines { lines ->
+             lines.forEach loop@ {
+                 line = it
+                 if (line.startsWith('#')) {
+                     if (line.startsWith("#EXTINF:")) {
+                         line = line.drop(line.indexOf(":")+ 1)
+                         if (line.endsWith(",")) {
+                             line = line.dropLast(1)
+                         }
+                         seconds = line.toFloat()
+                     } else if (line.startsWith("#EXT-X-KEY:")) {
+                         line = line.split("EXT-X-KEY:")[1]
+                         val arr: List<String> = line.split(",")
+                         for (s in arr) {
+                             if (s.contains("=")) {
+                                 val k = s.split("=")[0]
+                                 var v = s.split("=")[1]
+                                 if (k == "URI") {
+                                     v = v.replace("\"", "")
+                                     v = v.replace("'", "")
+                                     val keyReader =
+                                         BufferedReader(InputStreamReader(URL(baseUrl, v).openStream()))
+                                     m3u8.key = (keyReader.readLine())
+                                     M3U8Log.d("M3U8 key:" + m3u8.key)
+                                     keyReader.close()
+                                 } else if (k == "IV") {
+                                     m3u8.iv = v
+                                     M3U8Log.d("M3U8 IV: $v")
+                                 }
                              }
                          }
                      }
+                     return@loop
                  }
-                 return@loop
+                 if (line.endsWith("m3u8")) {
+                     return parseIndex(URL(baseUrl, line).toString() )
+                 }
+                 m3u8.tsList.add(M3U8Ts(line, 0, seconds))
+                 seconds = 0.0F
              }
-             if (line.endsWith("m3u8")) {
-                 return parseIndex(URL(baseUrl, line).toString() )
-             }
-             m3u8.tsList.add(M3U8Ts(line, 0, seconds))
-             seconds = 0.0F
          }
-     }
-    streams.close()
-    return  m3u8
+        streams.close()
+        return  m3u8
  }
 
     fun clearDir(dir:File): Boolean {
@@ -207,5 +214,4 @@ object M3U8Util {
     fun getSaveFileDir(fileName: String):String{
         return M3U8DownloadConfig.getSaveDir()+File.separator + fileName
     }
-
 }

@@ -1,13 +1,8 @@
 package com.tonybobo.m3u8_downloader
 
-import android.content.ContentResolver
-import android.content.ContentUris
 import android.content.Context
+import android.content.Intent
 import android.media.MediaScannerConnection
-import android.media.MediaScannerConnection.OnScanCompletedListener
-import android.net.Uri
-import android.provider.MediaStore
-import android.support.v4.os.IResultReceiver._Parcel
 import androidx.work.BackoffPolicy
 import androidx.work.Constraints
 import androidx.work.Data
@@ -117,8 +112,8 @@ class M3u8DownloaderPlugin: MethodChannel.MethodCallHandler , FlutterPlugin {
             "enqueue" -> enqueue(call, result)
             "pause" -> pause(call , result)
             "resume" -> resume(call, result)
-//            "retry" -> retry(call ,result)
-//            "open" -> open(call , result)
+            "retry" -> retry(call ,result)
+            "open" -> open(call , result)
             "remove" -> remove(call ,result)
             else -> result.notImplemented()
         }
@@ -244,64 +239,59 @@ class M3u8DownloaderPlugin: MethodChannel.MethodCallHandler , FlutterPlugin {
            }
         }
 
-//    private fun retry(call: MethodCall, result: Result){
-//      val taskId: String = call.requireArgument("task_id")
-//        val task = taskDao!!.loadTask(taskId)
-//        val requiresStorageNotLow: Boolean = call.requireArgument("requires_storage_not_low")
-//        val timeout:Int = call.requireArgument("timeout")
-//        if(task != null){
-//            if(task.status == DownloadStatus.FAILED || task.status == DownloadStatus.CANCELED){
-//                val request: WorkRequest = buildRequest(
-//                    task.url,
-//                    task.savedDir,
-//                    task.filename,
-//                    task.headers,
-//                    task.showNotification,
-//                    task.openFileFromNotification,
-//                    false,
-//                    requiresStorageNotLow,
-//                    task.saveInPublicStorage,
-//                    timeout,
-//                    allowCellular = task.allowCellular
-//                )
-//                val newTaskId:String = request.id.toString()
-//                result.success(newTaskId)
-//                sendUpdateProgress(newTaskId, DownloadStatus.RUNNING , task.progress)
-//                taskDao!!.updateTask(taskId,newTaskId,DownloadStatus.RUNNING,task.progress,false)
-//                WorkManager.getInstance(requireContext()).enqueue(request)
-//            }else{
-//                result.error(invalidStatus, "only failed and canceled task" , null)
-//            }
-//        }else{
-//            result.error(invalidTaskId , "not found task corresponding to given task id" , null)
-//        }
-//    }
+    private fun retry(call: MethodCall, result: Result){
+      val taskId: String = call.requireArgument("task_id")
+        val task = taskDao!!.loadTask(taskId)
+        if(task != null){
+            if(task.status == DownloadStatus.FAILED || task.status == DownloadStatus.CANCELED){
+                val fileDir = M3U8Util.getSaveFileDir(task.filename!!)
+                M3U8Util.clearDir(File(fileDir))
+                val mp4File = File("$fileDir.mp4")
+                if(mp4File.exists()){
+                    M3U8Log.d("Deleting MP4")
+                    deleteVideoInMediaStore(mp4File)
+                }
+                val request: WorkRequest = buildRequest(
+                    task.url,
+                    task.filename,
+                )
+                val newTaskId:String = request.id.toString()
+                result.success(newTaskId)
+                taskDao!!.updateTask(taskId,newTaskId,DownloadStatus.RUNNING)
+                WorkManager.getInstance(requireContext()).enqueue(request)
+            }else{
+                result.error(taskId, "only failed and canceled task" , null)
+            }
+        }else{
+            result.error(taskId, "not found task corresponding to given task id" , null)
+        }
+    }
 
-//    private fun open(call: MethodCall , result: Result){
-//       val taskId:String = call.requireArgument("task_id")
-//        val task = taskDao!!.loadTask(taskId)
-//        if(task == null){
-//            result.error(invalidTaskId, "not found task with id $taskId", null)
-//            return
-//        }
-//
-//        if(task.status != DownloadStatus.COMPLETED){
-//            result.error(invalidStatus , "Only Completed Task can be opened" , null)
-//            return
-//        }
-//
-//        val savedDir = task.savedDir
-//        val filename = task.filename
-//        val saveFilePath = savedDir + File.separator + filename
-//        val intent: Intent? = IntentUtils.validatedFileIntent(requireContext(),saveFilePath,task.mimeType)
-//        if(intent != null){
-//          requireContext().startActivity(intent)
-//          result.success(true)
-//        }else{
-//            result.success(false)
-//        }
-//
-//    }
+    private fun open(call: MethodCall , result: Result){
+       val taskId:String = call.requireArgument("task_id")
+        val task = taskDao!!.loadTask(taskId)
+        if(task == null){
+            result.error("not found task with id $taskId" , null , null)
+            M3U8Log.e("not found task with id $taskId" )
+            return
+        }
+
+        if(task.status != DownloadStatus.COMPLETED){
+            result.error(task.status.toString() , "Only Completed Task can be opened" , null)
+            return
+        }
+
+        val saveFilePath = M3U8Util.getSaveFileDir(task.filename!!)
+        val intent: Intent? = IntentUtils.validatedFileIntent(requireContext(),"$saveFilePath.mp4",
+            "video/mp4"
+        )
+        if(intent != null){
+          requireContext().startActivity(intent)
+          result.success(true)
+        }else{
+            result.success(false)
+        }
+    }
 
     private fun remove(call: MethodCall, result: Result){
         val taskId:String = call.requireArgument("task_id")

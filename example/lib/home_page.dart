@@ -120,19 +120,19 @@ class _MyHomePageState extends State<MyHomePage> {
     task.taskId = newTaskId;
   }
 
-  // Future<void> _retryDownload(TaskInfo task) async {
-  //   final newTaskId = await M3u8Downloader.resume(taskId: task.taskId!);
-  //   task.taskId = newTaskId;
-  // }
+  Future<void> _retryDownload(TaskInfo task) async {
+    final newTaskId = await M3u8Downloader.retry(taskId: task.taskId!);
+    task.taskId = newTaskId;
+  }
 
-  // Future<bool> _openDownloadedFile(TaskInfo? task) async {
-  //   final taskId = task?.taskId;
-  //   if (taskId == null) {
-  //     return false;
-  //   }
+  Future<bool> _openDownloadedFile(TaskInfo? task) async {
+    final taskId = task?.taskId;
+    if (taskId == null) {
+      return false;
+    }
 
-  //   return M3u8Downloader.open(taskId: taskId);
-  // }
+    return M3u8Downloader.open(taskId: taskId);
+  }
 
   Future<void> _delete(TaskInfo task) async {
     await M3u8Downloader.remove(taskId: task.taskId!);
@@ -291,14 +291,14 @@ class _MyHomePageState extends State<MyHomePage> {
                   case DownloadTaskStatus.paused:
                     _resumeDownload(task);
                   case DownloadTaskStatus.complete:
-                    _delete(task);
+                    _openDownloadedFile(task);
 
                   case DownloadTaskStatus.canceled:
                   // _delete(task);
 
                   case DownloadTaskStatus.failed:
-                    // _retryDownload(task);
-                    _delete(task);
+                    _retryDownload(task);
+                  // _delete(task);
                   case DownloadTaskStatus.enqueued:
                     _delete(task);
                   default:

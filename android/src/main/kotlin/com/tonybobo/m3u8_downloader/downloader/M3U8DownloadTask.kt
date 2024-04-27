@@ -16,17 +16,14 @@ import java.io.FileOutputStream
 import java.io.IOException
 import java.io.InputStream
 import java.io.InterruptedIOException
-import java.lang.Exception
 import java.net.HttpURLConnection
 import java.net.MalformedURLException
 import java.util.Timer
 import java.util.TimerTask
-import java.util.concurrent.atomic.AtomicInteger
-import java.util.concurrent.atomic.AtomicLong
+import kotlin.Exception
 
 class M3U8DownloadTask(context: Context) {
     companion object{
-        const val LOCAL_FILE = "local.m3u8"
         const val M3U8_KEY_NAME = "key.key"
         private const val BUFFER_SIZE = 4096
     }
@@ -37,7 +34,7 @@ class M3U8DownloadTask(context: Context) {
     private var timer: Timer? = Timer()
     var isRunning = false
     private var curTs = 0
-    private var curLength: Long = 0;
+    private var curLength: Long = 0
     private var totalTs:Int = 0
     private var itemFileSize:Long = 0
     private var onTaskListener : OnTaskDownloadListener? = null
@@ -73,8 +70,12 @@ class M3U8DownloadTask(context: Context) {
     }
 
     private fun getM3U8Info(url: String , callback: OnInfoCallback ){
-        val m3u8 = M3U8Util.parseIndex(url)
-        callback.success(m3u8)
+        try {
+            val m3u8 = M3U8Util.parseIndex(url)
+            callback.success(m3u8)
+        }catch (e:Exception){
+            onTaskListener!!.onError(e)
+        }
     }
 
     private fun start(m3U8: M3U8){
@@ -132,10 +133,11 @@ class M3U8DownloadTask(context: Context) {
             if(!isRunning) break
 
             if(!file.exists()){
-                MediaScannerConnection.scanFile(ctx , arrayOf(file.path), arrayOf("video/mp2t"), null)
+//                MediaScannerConnection.scanFile(ctx , arrayOf(file.path), arrayOf("video/mp2t"), null)
                 var readFinished = false
                 try {
                     val url = ts.obtainFullUrl(basePath)
+                    M3U8Log.d(url.protocol)
                     val conn = url.openConnection() as HttpURLConnection
                     conn.connectTimeout = if (connTimeout < 20000) 20000 else connTimeout
                     conn.readTimeout = if(readTimeOut < 20000) 20000 else connTimeout
@@ -171,7 +173,6 @@ class M3U8DownloadTask(context: Context) {
         var outStream: FileOutputStream? = null
         var inputStream: InputStream? = null
         onTaskListener!!.onConvert()
-
 
         try {
             mp4File = File(mp4FilePath)
@@ -230,6 +231,7 @@ class M3U8DownloadTask(context: Context) {
        e.printStackTrace()
        onTaskListener!!.onError(e)
     }
+
 
     fun stop(){
         if(timer != null) {

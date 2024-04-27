@@ -78,13 +78,22 @@ class DownloadListItem extends StatelessWidget {
               style: TextStyle(color: Colors.green),
             ),
             IconButton(
-              onPressed: () => onActionTap?.call(task),
+              onPressed: () => onTap?.call(task),
               constraints: const BoxConstraints(minHeight: 32, minWidth: 32),
               icon: const Icon(
                 Icons.delete,
+                color: Colors.red,
+              ),
+              tooltip: 'Delete',
+            ),
+            IconButton(
+              onPressed: () => onActionTap?.call(task),
+              constraints: const BoxConstraints(minHeight: 32, minWidth: 32),
+              icon: const Icon(
+                Icons.open_in_full,
                 color: Colors.green,
               ),
-              tooltip: 'delete',
+              tooltip: 'Open',
             )
           ],
         );
@@ -121,6 +130,15 @@ class DownloadListItem extends StatelessWidget {
             ),
             IconButton(
               onPressed: () => onActionTap?.call(task),
+              constraints: const BoxConstraints(minHeight: 32, minWidth: 32),
+              icon: const Icon(
+                Icons.refresh,
+                color: Colors.yellow,
+              ),
+              tooltip: 'Retry',
+            ),
+            IconButton(
+              onPressed: () => onTap?.call(task),
               constraints: const BoxConstraints(minHeight: 32, minWidth: 32),
               icon: const Icon(
                 Icons.delete,
