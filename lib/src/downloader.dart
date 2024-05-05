@@ -6,7 +6,8 @@ import 'package:m3u8_downloader/src/models.dart';
 
 import 'callback_dispatcher.dart';
 
-typedef DownloadCallback = void Function(String id, int status, int progress);
+typedef DownloadCallback = void Function(
+    String id, int status, int progress, String size);
 
 class M3u8Downloader {
   static const _channel = MethodChannel("com.tonybobo.m3u8_downloader");

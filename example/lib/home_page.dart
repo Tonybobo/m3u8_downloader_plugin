@@ -66,11 +66,14 @@ class _MyHomePageState extends State<MyHomePage> {
       final taskId = (data as List<dynamic>)[0] as String;
       final status = DownloadTaskStatus.fromInt(data[1] as int);
       final progress = data[2] as int;
+      final size = data[3] ?? "";
+      // ignore: avoid_print
+      print(data);
 
       // ignore: avoid_print
       print(
         'Callback on UI Isolate: '
-        'task ($taskId) is in status ($status) and progress ($progress)',
+        'task ($taskId) is in status ($status) and progress ($progress) and current file size ($size)',
       );
 
       if (_tasks != null && _tasks!.isNotEmpty) {
@@ -89,10 +92,11 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   @pragma('vm:entry-point')
-  static void downloadCallback(String id, int status, int progress) {
+  static void downloadCallback(
+      String id, int status, int progress, String size) {
     // ignore: avoid_print
     IsolateNameServer.lookupPortByName('downloader_send_port')
-        ?.send([id, status, progress]);
+        ?.send([id, status, progress, size]);
   }
 
   Future<void> _retryRequestPermission() async {

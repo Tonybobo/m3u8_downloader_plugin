@@ -3,7 +3,7 @@ package com.tonybobo.m3u8_downloader.downloader
 import android.content.Context
 import android.media.MediaScannerConnection
 import android.text.TextUtils
-import com.tonybobo.m3u8_donwloader.listeners.OnInfoCallback
+import com.tonybobo.m3u8_downloader.listeners.OnInfoCallback
 import com.tonybobo.m3u8_downloader.bean.M3U8
 import com.tonybobo.m3u8_downloader.listeners.OnTaskDownloadListener
 import com.tonybobo.m3u8_downloader.utils.EncryptUtil
@@ -69,7 +69,7 @@ class M3U8DownloadTask(context: Context) {
         }
     }
 
-    private fun getM3U8Info(url: String , callback: OnInfoCallback ){
+    private fun getM3U8Info(url: String , callback: OnInfoCallback){
         try {
             val m3u8 = M3U8Util.parseIndex(url)
             callback.success(m3u8)
@@ -133,29 +133,35 @@ class M3U8DownloadTask(context: Context) {
             if(!isRunning) break
 
             if(!file.exists()){
-//                MediaScannerConnection.scanFile(ctx , arrayOf(file.path), arrayOf("video/mp2t"), null)
                 var readFinished = false
-                try {
-                    val url = ts.obtainFullUrl(basePath)
-                    M3U8Log.d(url.protocol)
-                    val conn = url.openConnection() as HttpURLConnection
-                    conn.connectTimeout = if (connTimeout < 20000) 20000 else connTimeout
-                    conn.readTimeout = if(readTimeOut < 20000) 20000 else connTimeout
+                val buffer = ByteArray(BUFFER_SIZE)
+                var bytesRead: Int
+                val url = ts.obtainFullUrl(basePath)
+                val conn = url.openConnection() as HttpURLConnection
+                conn.connectTimeout = if (connTimeout < 20000) 20000 else connTimeout
+                conn.readTimeout = if(readTimeOut < 20000) 20000 else connTimeout
+                val outputStream = file.outputStream()
+                val inputStream = conn.inputStream
 
-                    if(conn.responseCode == 200)
-                        conn.inputStream.use { input -> file.outputStream().use { output -> input.copyTo(output) }}
+                try {
+                    while(inputStream.read(buffer).also { bytesRead = it } != -1){
+                        curLength += bytesRead.toLong()
+                       outputStream.write(buffer , 0 , bytesRead)
+                    }
                     readFinished = true
 
                 }catch (e: MalformedURLException){
                    handlerError(e)
                 }catch (e: IOException){
                    handlerError(e)
-                }finally {
-                   if(!readFinished && file.exists())
-                       file.delete()
+                } finally {
+                    if (!readFinished && file.exists())
+                        file.delete()
+                    inputStream?.close()
+                    outputStream.close()
+                    conn.disconnect()
                 }
-                curLength += file.length()
-                onTaskListener!!.onDownloadItem(itemFileSize , totalTs , curTs++)
+                onTaskListener!!.onDownloadItem(curLength , totalTs , curTs++)
                 lastTs = ts.url
             }else{
                 curTs++
@@ -192,16 +198,24 @@ class M3U8DownloadTask(context: Context) {
                 if(!file.exists()){
                     continue
                 }
-                inputStream = FileInputStream(file)
-                if(!TextUtils.isEmpty(currentM3u8!!.key)){
-                    val available = inputStream.available()
-                    if(bytes.size < available){
-                        bytes = ByteArray(available)
+                try {
+                    inputStream = FileInputStream(file)
+                    if(!TextUtils.isEmpty(currentM3u8!!.key)){
+                        val available = inputStream.available()
+                        if(bytes.size < available){
+                            bytes = ByteArray(available)
+                        }
+                        inputStream.read(bytes)
+                        outStream.write(EncryptUtil.decryptTs(bytes , currentM3u8!!.key , currentM3u8!!.iv))
+
+                    }else{
+                        inputStream.use { stream -> stream.copyTo(outStream) }
                     }
-                    inputStream.read(bytes)
-                    outStream.write(EncryptUtil.decryptTs(bytes , currentM3u8!!.key , currentM3u8!!.iv))
-                }else{
-                    inputStream.use { stream -> stream.copyTo(outStream) }
+                }catch (e:Exception){
+                    e.printStackTrace()
+                    handlerError(e)
+                }finally {
+                    inputStream?.close()
                 }
             }
 
@@ -222,7 +236,7 @@ class M3U8DownloadTask(context: Context) {
             if(mp4File != null && mp4File.exists() && mp4File.length().toInt() == 0 ){
                 mp4File.delete()
             }
-            inputStream?.close()
+            outStream?.flush()
             outStream?.close()
         }
     }

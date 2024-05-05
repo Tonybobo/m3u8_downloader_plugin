@@ -2,9 +2,7 @@ package com.tonybobo.m3u8_downloader.bean
 
 import android.webkit.URLUtil
 import com.tonybobo.m3u8_downloader.utils.EncryptUtil
-import com.tonybobo.m3u8_downloader.utils.M3U8Log
 import java.net.URL
-import java.security.MessageDigest
 
 data class M3U8Ts(val url:String, var fileSize:Long= 0, val seconds : Float) : Comparable<M3U8Ts>{
 

@@ -51,13 +51,6 @@ class SpHelper {
             return PREFERENCES!!.getLong(checkKeyNotNull(key) , value)
         }
 
-        fun putFloat(key: String , value: Float){
-           newEditor().putFloat(checkKeyNotNull(key) , value).apply()
-        }
-
-        fun getFloat(key: String , value: Float):Float{
-            return PREFERENCES!!.getFloat(checkKeyNotNull(key) , value)
-        }
 
         fun putString(key: String , value: String){
             newEditor().putString(checkKeyNotNull(key), value).apply()
@@ -65,23 +58,6 @@ class SpHelper {
 
         fun getString(key: String , value: String ):String?{
             return PREFERENCES!!.getString(checkKeyNotNull(key) , value)
-        }
-
-
-        fun putStringSet(key: String , value: MutableSet<String>){
-            newEditor().putStringSet(checkKeyNotNull(key), value).apply()
-        }
-
-        fun getStringSet(key: String , value: MutableSet<String> ): MutableSet<String>? {
-            return PREFERENCES!!.getStringSet(checkKeyNotNull(key) , value)
-        }
-
-        fun remove(key: String){
-            newEditor().remove(key).apply()
-        }
-
-        fun clear(){
-            newEditor().clear().commit()
         }
     }
 }

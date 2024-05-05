@@ -10,16 +10,17 @@ class DownloadItem {
 class DownloadItems {
   static const videos = <DownloadItem>[
     DownloadItem(
-        url: "https://v10.qqtvoss.com/202404/09/XVxPLecEdq3/video/index.m3u8",
-        name: 'Ep8'),
+        url: "https://v.gsuus.com/play/PdRG6MOe/index.m3u8",
+        name: 'Killer Ep1'),
     DownloadItem(
-        url:
-            "https://vip1.lz-cdn8.com/20220404/708_3bd3e4a0/index.m3u8?t=57122506",
-        name: "one piece"),
+        url: "https://v.gsuus.com/play/QdJw1oPe/index.m3u8",
+        name: "Killer Ep2"),
     DownloadItem(
-        url:
-            "https://v10.suoni-qiyi.com/202403/12/VRXNjRsANy3/video/index.m3u8",
-        name: '幕府将军 第四集'),
+        url: "https://v.gsuus.com/play/xe7KmE1e/index.m3u8",
+        name: 'Killer Ep3'),
+    DownloadItem(
+        url: "https://v.gsuus.com/play/xbo4EQjd/index.m3u8",
+        name: 'Killer Ep4'),
     DownloadItem(
         url:
             "https://s5.bfengbf.com/video/woduzishengji/%E7%AC%AC01%E9%9B%86/index.m3u8",

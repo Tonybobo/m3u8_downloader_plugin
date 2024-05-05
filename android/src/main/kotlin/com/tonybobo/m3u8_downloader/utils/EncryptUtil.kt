@@ -1,13 +1,10 @@
 package com.tonybobo.m3u8_downloader.utils
 
-import android.annotation.SuppressLint
 import android.text.TextUtils
 import java.math.BigInteger
 import java.security.MessageDigest
 import java.security.NoSuchAlgorithmException
-import java.util.Base64
 import javax.crypto.Cipher
-import javax.crypto.KeyGenerator
 import javax.crypto.spec.IvParameterSpec
 import javax.crypto.spec.SecretKeySpec
 
@@ -28,18 +25,6 @@ object EncryptUtil {
             e.printStackTrace()
         }
         return str
-    }
-
-    fun getAESKey():String {
-      val kg = KeyGenerator.getInstance("AES")
-      kg.init(128)
-        val secretKey = kg.generateKey()
-        val byte = secretKey.encoded
-        return byte.toHex()
-    }
-
-    fun getAESEncode(base64Key: String , text:String): ByteArray{
-        return getAESEncode(base64Key , text.toByteArray())
     }
 
     fun decryptTs(bytes: ByteArray , key : String , iv :String): ByteArray{
@@ -64,20 +49,6 @@ object EncryptUtil {
         return cipher.doFinal(bytes)
 
     }
-
-    @SuppressLint("GetInstance")
-    private fun getAESEncode(base64Key: String, bytes: ByteArray):ByteArray{
-        val key = parseHexStr2Byte(base64Key)
-        val sKeySpec = SecretKeySpec(key , "AES")
-        val cipher = Cipher.getInstance("AES")
-        cipher.init(Cipher.DECRYPT_MODE , sKeySpec)
-        return cipher.doFinal(bytes)
-    }
-
-    private fun ByteArray.toHex(): String = joinToString(separator = ""){
-        eachByte -> "%02x".format(eachByte)
-    }
-
 
     private fun parseHexStr2Byte(hexStr: String): ByteArray{
         check(hexStr.length % 2 == 0){

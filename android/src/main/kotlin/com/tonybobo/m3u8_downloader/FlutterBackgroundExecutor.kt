@@ -69,13 +69,14 @@ class FlutterBackgroundExecutor : MethodChannel.MethodCallHandler {
         backgroundChannel?.setMethodCallHandler(this)
     }
 
-    fun sendUpdateProcessEvent(id: UUID , status: DownloadStatus , progress:Float  , inputData : Data , applicationContext: Context){
+    fun sendUpdateProcessEvent(id: UUID , status: DownloadStatus , fileSize:String, progress:Float  , inputData : Data , applicationContext: Context){
         val args: MutableList<Any> = ArrayList()
         val callbackHandle: Long = inputData.getLong(ARG_CALLBACK_HANDLE, 0)
         args.add(callbackHandle)
         args.add(id.toString())
         args.add((progress*100).toInt())
         args.add(status.ordinal)
+        args.add(fileSize)
         synchronized(isolateStarted){
             if(!isolateStarted.get()){
                 M3U8Log.d("isolateStarted : $isolateStarted")
